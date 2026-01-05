@@ -23,7 +23,7 @@ export default function FeaturedVideos({ videos }: FeaturedVideosProps) {
     if (video.thumbnail_url) {
       return video.thumbnail_url;
     }
-    const match = video.video_url.match(/(?:v=|\/embed\/|youtu\.be\/)([\w-]{11})/);
+    const match = video.video_url?.match(/(?:v=|\/embed\/|youtu\.be\/)([\w-]{11})/);
     if (match) {
       return 'https://img.youtube.com/vi/' + match[1] + '/mqdefault.jpg';
     }
