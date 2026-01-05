@@ -1,22 +1,18 @@
 'use client';
 import { formatVideoTitle } from '@/lib/formatTitle';
-
 import { useState } from 'react';
 import Link from 'next/link';
 import { Video } from '@/types';
 import { Play, Clock, Star, Lock } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import LoginModal from '@/components/LoginModal';
-
 interface VideoGridProps {
   videos: Video[];
   showBookmark?: boolean;
 }
-
 export default function VideoGrid({ videos }: VideoGridProps) {
   const { user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
-
   if (videos.length === 0) {
     return (
       <div className="text-center py-12">
@@ -24,7 +20,6 @@ export default function VideoGrid({ videos }: VideoGridProps) {
       </div>
     );
   }
-
   function getThumbnailUrl(video: Video): string {
     // ★ custom_thumbnail_url を優先
     if (video.custom_thumbnail_url) {
@@ -33,25 +28,24 @@ export default function VideoGrid({ videos }: VideoGridProps) {
     if (video.thumbnail_url) {
       return video.thumbnail_url;
     }
-    const match = video.video_url.match(/(?:v=|\/embed\/|youtu\.be\/)([\w-]{11})/);
-    if (match) {
-      return 'https://img.youtube.com/vi/' + match[1] + '/mqdefault.jpg';
+    if (video.video_url) {
+      const match = video.video_url.match(/(?:v=|\/embed\/|youtu\.be\/)([\w-]{11})/);
+      if (match) {
+        return 'https://img.youtube.com/vi/' + match[1] + '/mqdefault.jpg';
+      }
     }
     return '/placeholder-video.png';
   }
-
   function formatDuration(seconds?: number | null): string {
     if (!seconds) return '';
     return Math.floor(seconds / 60) + ':' + (seconds % 60).toString().padStart(2, '0');
   }
-
   function handleVideoClick(e: React.MouseEvent) {
     if (!user) {
       e.preventDefault();
       setShowLoginModal(true);
     }
   }
-
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
