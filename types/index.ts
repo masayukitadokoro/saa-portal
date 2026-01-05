@@ -1,10 +1,8 @@
 // ===========================================
 // SAA Portal 型定義
 // ===========================================
-
 // ユーザーロール
 export type UserRole = 'student' | 'ta' | 'admin';
-
 // カテゴリ
 export interface Category {
   id: number;
@@ -18,7 +16,6 @@ export interface Category {
   is_active: boolean;
   video_count?: number;
 }
-
 // 動画
 export interface Video {
   id: number;
@@ -36,6 +33,7 @@ export interface Video {
   slide_url: string | null;
   related_article_url: string | null;
   thumbnail_url: string | null;
+  custom_thumbnail_url: string | null;
   sort_order: number;
   display_order: number | null;
   is_featured: boolean;
@@ -52,7 +50,6 @@ export interface Video {
   // リレーション
   category?: Category;
 }
-
 // バッチ（期）
 export interface Batch {
   id: number;
@@ -63,7 +60,6 @@ export interface Batch {
   is_active: boolean;
   created_at: string;
 }
-
 // ユーザープロファイル
 export interface UserProfile {
   id: string;
@@ -78,7 +74,6 @@ export interface UserProfile {
   // リレーション
   batch?: Batch;
 }
-
 // 講義
 export interface Lecture {
   id: number;
@@ -94,7 +89,6 @@ export interface Lecture {
   meeting_url: string | null;
   created_at: string;
 }
-
 // 出席
 export interface Attendance {
   id: number;
@@ -107,7 +101,6 @@ export interface Attendance {
   // リレーション
   lecture?: Lecture;
 }
-
 // 課題
 export interface Assignment {
   id: number;
@@ -120,7 +113,6 @@ export interface Assignment {
   is_required: boolean;
   created_at: string;
 }
-
 // 課題提出
 export interface AssignmentSubmission {
   id: number;
@@ -136,7 +128,6 @@ export interface AssignmentSubmission {
   // リレーション
   assignment?: Assignment;
 }
-
 // 視聴履歴
 export interface WatchHistory {
   id: number;
@@ -149,7 +140,6 @@ export interface WatchHistory {
   // リレーション
   video?: Video;
 }
-
 // ブックマーク
 export interface Bookmark {
   id: number;
@@ -159,7 +149,6 @@ export interface Bookmark {
   // リレーション
   video?: Video;
 }
-
 // 動画メモ
 export interface VideoNote {
   id: number;
@@ -170,7 +159,6 @@ export interface VideoNote {
   created_at: string;
   updated_at: string;
 }
-
 // エンゲージメント設定
 export interface EngagementSettings {
   id: number;
