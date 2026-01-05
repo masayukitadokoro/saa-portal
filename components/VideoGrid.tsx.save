@@ -1,0 +1,97 @@
+'use client';
+
+import Link from 'next/link';
+import { Video } from '@/types';
+import { Play, Clock, Star } from 'lucide-react';
+
+interface VideoGridProps {
+  videos: Video[];
+  showBookmark?: boolean;
+}
+
+export default function VideoGrid({ videos }: VideoGridProps) {
+  if (videos.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">動画が見つかりませんでした</p>
+      </div>
+    );
+  }
+
+  function getThumbnailUrl(video: Video): string {
+    if (video.thumbnail_url) {
+      return video.thumbnail_url;
+    }
+    const match = video.video_url.match(/(?:v=|\/embed\/|youtu\.be\/)([\w-]{11})/);
+    if (match) {
+      return 'https://img.youtube.com/vi/' + match[1] + '/mqdefault.jpg';
+    }
+    return '/placeholder-video.png';
+  }
+
+  function formatDuration(seconds?: number | null): string {
+    if (!seconds) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins + ':' + secs.toString().padStart(2, '0');
+  }
+
+  function renderDifficulty(level: number) {
+    return (
+      <span className="flex items-center gap-0.5">
+        {[1, 2, 3].map((i) => (
+          <Star
+            key={i}
+            className={'w-3 h-3 ' + (i <= level ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300')}
+          />
+        ))}
+      </span>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {videos.map((video) => (
+        <div
+          key={video.video_id}
+          className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+        >
+          <Link
+            href={'/video/' + video.video_id}
+            className="block relative aspect-video bg-gray-100"
+          >
+            <img
+              src={getThumbnailUrl(video)}
+              alt={video.title}
+              className="w-full h-full object-cover"
+            />
+            {video.duration && (
+              <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-xs font-medium rounded">
+                {formatDuration(video.duration)}
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
+              <Play className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </Link>
+          <div className="p-4">
+            <Link href={'/video/' + video.video_id}>
+              <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-2">
+                {video.title}
+              </h3>
+            </Link>
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              {video.difficulty && renderDifficulty(video.difficulty)}
+              {video.duration && (
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatDuration(video.duration)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

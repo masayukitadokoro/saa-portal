@@ -1,0 +1,92 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
+import Header from '@/components/Header';
+import CategoryCard from '@/components/CategoryCard';
+import FeaturedVideos from '@/components/FeaturedVideos';
+import SearchSuggestions from '@/components/SearchSuggestions';
+import { Category, Video } from '@/types';
+
+export default function Home() {
+  const { user } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [featuredVideos, setFeaturedVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [catRes, featuredRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/videos/featured')
+        ]);
+        const catData = await catRes.json();
+        const featuredData = await featuredRes.json();
+        setCategories(catData.categories || []);
+        setFeaturedVideos(featuredData.videos || []);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header showSearch={false} />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header showSearch={false} />
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <section className="mb-12">
+          <SearchSuggestions />
+        </section>
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            コンテンツカテゴリ
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        </section>
+        {featuredVideos.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              注目のコンテンツ
+            </h2>
+            <FeaturedVideos videos={featuredVideos} />
+          </section>
+        )}
+        {!user && (
+          <section className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
+            <h2 className="text-2xl font-bold mb-4">
+              すべてのコンテンツにアクセス
+            </h2>
+            <p className="mb-6 opacity-90">
+              アカウント登録で、ブックマーク、視聴履歴、パーソナライズされたおすすめが利用できます
+            </p>
+            <a
+              href="/auth/signup"
+              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
+            >
+              無料で始める
+            </a>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}

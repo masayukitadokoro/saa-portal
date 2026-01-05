@@ -1,0 +1,111 @@
+'use client';
+
+import { Clock } from 'lucide-react';
+
+interface Video {
+function generateSummary(scriptText?: string): string {
+  if (!scriptText) return '動画の内容をご確認ください'  video_id: string;
+  title: string;
+  script_text: string;
+  video_url: string;
+  similarity: number;
+  matched_content?: string;
+  duration?: number; // 秒数
+  thumbnail_url?: string;
+}
+
+interface VideoCardProps {
+  video: Video;
+  rank?: number;
+}
+
+// YouTubeのURLからサムネイルURLを生成
+function getThumbnailUrl(videoUrl: string, customThumbnail?: string): string {
+  if (customThumbnail) return customThumbnail;
+  
+  // YouTube URLからvideo_idを抽出
+  const match = videoUrl.match(/(?:v=|\/embed\/|youtu\.be\/)([\w-]{11})/);
+  if (match) {
+    return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
+  }
+  
+  // デフォルトのプレースホルダー
+  return '/placeholder-video.png';
+}
+
+// 秒数を「MM:SS」形式に変換
+function formatDuration(seconds?: number): string {
+  if (!seconds) return '10:00'; // デフォルト値
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// script_textから要約を生成（最初の100文字程度）
+function generateSummary(scriptText?: string): string {
+  if(!scriptText)return'動画の内容をご確認ください';
+  const cleaned = scriptText.replace(/\n/g, ' ').trim();
+  if (cleaned.length <= 80) return cleaned;
+  return cleaned.substring(0, 80) + '...';
+}
+
+export default function VideoCard({ video, rank }: VideoCardProps) {
+  const thumbnailUrl = getThumbnailUrl(video.video_url, video.thumbnail_url);
+  const duration = formatDuration(video.duration);
+  const summary = generateSummary(video.script_text);
+  const relevance = Math.round(video.similarity * 100);
+
+  return (
+    <a
+      href={video.video_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+    >
+      {/* サムネイル */}
+      <div className="relative aspect-video bg-gray-100">
+        <img
+          src={thumbnailUrl}
+          alt={video.title}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // 画像読み込みエラー時のフォールバック
+            (e.target as HTMLImageElement).src = '/placeholder-video.png';
+          }}
+        />
+        {/* 再生時間バッジ */}
+        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-xs font-medium rounded">
+          {duration}
+        </div>
+        {/* ランク表示（オプション） */}
+        {rank && (
+          <div className="absolute top-2 left-2 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+            {rank}
+          </div>
+        )}
+      </div>
+
+      {/* コンテンツ */}
+      <div className="p-3">
+        {/* タイトル */}
+        <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-2">
+          {video.title}
+        </h3>
+
+        {/* メタデータ */}
+        <div className="flex items-center gap-3 text-sm text-gray-500 mb-2">
+          <span className="text-blue-600 font-medium">関連度: {relevance}%</span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            {duration}
+          </span>
+        </div>
+
+        {/* AI要約 */}
+        <p className="text-sm text-gray-600 line-clamp-2">
+          要約: {summary}
+        </p>
+      </div>
+    </a>
+  );
+}

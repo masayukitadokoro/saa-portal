@@ -1,0 +1,38 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+
+export async function GET() {
+  const supabase = await createClient();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const [videosResult, usersResult, searchesResult, todaySearchesResult] = await Promise.all([
+    supabase.from('videos').select('id', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('search_history').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('search_history')
+      .select('id', { count: 'exact', head: true })
+      .gte('searched_at', new Date().toISOString().split('T')[0]),
+  ]);
+
+  return NextResponse.json({
+    totalVideos: videosResult.count || 0,
+    totalUsers: usersResult.count || 0,
+    totalSearches: searchesResult.count || 0,
+    todaySearches: todaySearchesResult.count || 0,
+  });
+}
