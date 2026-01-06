@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
 interface Profile {
@@ -35,34 +35,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createBrowserClient(
+  const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  ), []);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+    let mounted = true;
 
-      if (session?.user) {
-        const res = await fetch('/api/profile');
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data.profile);
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const res = await fetch('/api/profile');
+          if (res.ok && mounted) {
+            const data = await res.json();
+            setProfile(data.profile);
+          }
+        }
+      } catch (error) {
+        console.error('Session error:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
         }
       }
-      setLoading(false);
     };
 
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return;
+        
         setUser(session?.user ?? null);
         if (session?.user) {
           const res = await fetch('/api/profile');
-          if (res.ok) {
+          if (res.ok && mounted) {
             const data = await res.json();
             setProfile(data.profile);
           }
@@ -72,17 +86,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     profile,
     loading,
     isAdmin: profile?.saa_role === 'admin',
     isTA: profile?.saa_role === 'ta',
     isStudent: profile?.saa_role === 'student',
-  };
+  }), [user, profile, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
