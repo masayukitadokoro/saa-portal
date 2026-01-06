@@ -3,21 +3,22 @@ import { createClient } from '@/lib/supabase-server';
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
-  const { data: profile, error } = await supabase
+
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .single();
-  
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
-  
+
   return NextResponse.json({ profile });
 }
