@@ -1,203 +1,177 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import { useEffect } from 'react';
+import Link from 'next/link';
 import { 
-  BarChart3, 
-  Upload, 
-  Users, 
-  Video, 
-  Search,
-  TrendingUp 
+  Users, Calendar, FileText, 
+  Settings, BarChart3, GraduationCap, Bell,
+  Video, ClipboardList
 } from 'lucide-react';
 
-interface Stats {
-  totalVideos: number;
-  totalUsers: number;
-  totalSearches: number;
-  todaySearches: number;
-}
-
-interface Profile {
-  id: string;
-  email: string;
-  role: string;
-}
-
 export default function AdminDashboard() {
+  const { profile, loading, isAdmin } = useAuth();
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function checkAdminAndLoadData() {
-      if (authLoading) return;
-      
-      if (!user) {
-        router.push('/');
-        return;
-      }
-
-      const profileRes = await fetch('/api/profile');
-      const profileData = await profileRes.json();
-      
-      if (profileData.profile?.role !== 'admin') {
-        alert('管理者権限がありません');
-        router.push('/');
-        return;
-      }
-      
-      setProfile(profileData.profile);
-
-      const statsRes = await fetch('/api/admin/stats');
-      const statsData = await statsRes.json();
-      setStats(statsData);
-      
-      setIsLoading(false);
+    if (!loading && !isAdmin) {
+      router.push('/');
     }
+  }, [loading, isAdmin, router]);
 
-    checkAdminAndLoadData();
-  }, [user, authLoading, router]);
-
-  if (isLoading || authLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">管理者ダッシュボード</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">{profile?.email}</span>
-            <a href="/" className="text-blue-600 hover:underline text-sm">
-              ← サイトに戻る
-            </a>
-          </div>
-        </div>
-      </header>
+  if (!isAdmin) {
+    return null;
+  }
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            icon={<Video className="w-6 h-6" />}
-            label="総動画数"
-            value={stats?.totalVideos || 0}
-            color="blue"
-          />
-          <StatCard
-            icon={<Users className="w-6 h-6" />}
-            label="総ユーザー数"
-            value={stats?.totalUsers || 0}
-            color="green"
-          />
-          <StatCard
-            icon={<Search className="w-6 h-6" />}
-            label="総検索数"
-            value={stats?.totalSearches || 0}
-            color="purple"
-          />
-          <StatCard
-            icon={<TrendingUp className="w-6 h-6" />}
-            label="本日の検索数"
-            value={stats?.todaySearches || 0}
-            color="orange"
-          />
-        </div>
+  const menuItems = [
+    { icon: BarChart3, label: 'ダッシュボード', href: '/admin', active: true },
+    { icon: Users, label: '受講生管理', href: '/admin/students', active: false },
+    { icon: GraduationCap, label: 'TA管理', href: '/admin/tas', active: false },
+    { icon: Video, label: '動画管理', href: '/admin/videos', active: false },
+    { icon: Calendar, label: '講義管理', href: '/admin/lectures', active: false },
+    { icon: ClipboardList, label: '課題管理', href: '/admin/assignments', active: false },
+    { icon: FileText, label: '出席管理', href: '/admin/attendance', active: false },
+    { icon: Bell, label: '通知管理', href: '/admin/notifications', active: false },
+    { icon: Settings, label: '設定', href: '/admin/settings', active: false },
+  ];
 
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">管理メニュー</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MenuCard
-            href="/admin/contents"
-            icon={<Video className="w-8 h-8" />}
-            title="動画管理"
-            description="動画の一覧表示、編集、削除"
-          />
-          <MenuCard
-            href="/admin/upload"
-            icon={<Upload className="w-8 h-8" />}
-            title="動画一括アップロード"
-            description="CSVファイルから動画を一括登録"
-          />
-          <MenuCard
-            href="/admin/users"
-            icon={<Users className="w-8 h-8" />}
-            title="ユーザー管理"
-            description="ユーザー一覧と権限管理"
-          />
-          <MenuCard
-            href="/admin/analytics"
-            icon={<BarChart3 className="w-8 h-8" />}
-            title="アクセス分析"
-            description="検索キーワードランキング、人気動画"
-          />
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function StatCard({ 
-  icon, 
-  label, 
-  value, 
-  color 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  value: number; 
-  color: 'blue' | 'green' | 'purple' | 'orange';
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    orange: 'bg-orange-100 text-orange-600',
+  const stats = {
+    totalStudents: 0,
+    totalVideos: 360,
+    totalLectures: 0,
+    pendingAssignments: 0,
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-center gap-4">
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-          {icon}
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* サイドバー */}
+      <aside className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white fixed h-full">
+        <div className="p-6">
+          <h1 className="text-xl font-bold">SAA管理画面</h1>
+          <p className="text-sm text-slate-400 mt-1">{profile?.display_name}</p>
         </div>
-        <div>
-          <p className="text-sm text-gray-500">{label}</p>
-          <p className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+        
+        <nav className="mt-4">
+          {menuItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-3 px-6 py-3 text-sm transition ${
+                item.active
+                  ? 'bg-white/10 border-l-4 border-purple-500 text-white'
+                  : 'text-slate-300 hover:bg-white/5 border-l-4 border-transparent'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-function MenuCard({ 
-  href, 
-  icon, 
-  title, 
-  description 
-}: { 
-  href: string; 
-  icon: React.ReactNode; 
-  title: string; 
-  description: string;
-}) {
-  return (
-    <a
-      href={href}
-      className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow group"
-    >
-      <div className="text-blue-600 mb-4 group-hover:scale-110 transition-transform">
-        {icon}
-      </div>
-      <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-sm text-gray-500">{description}</p>
-    </a>
+        <div className="absolute bottom-4 left-0 right-0 px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition"
+          >
+            ← ポータルに戻る
+          </Link>
+        </div>
+      </aside>
+
+      {/* メインコンテンツ */}
+      <main className="flex-1 ml-64 p-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">ダッシュボード</h2>
+          <p className="text-gray-500 mt-1">SAA運営管理画面</p>
+        </div>
+
+        {/* 統計カード */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">受講生数</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Video className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">動画数</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalVideos}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">講義数</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalLectures}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">未確認課題</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* クイックアクション */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">クイックアクション</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <Users className="w-6 h-6 text-blue-600 mb-2" />
+              <p className="font-medium text-gray-900">受講生追加</p>
+              <p className="text-sm text-gray-500">新規受講生を登録</p>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <Calendar className="w-6 h-6 text-green-600 mb-2" />
+              <p className="font-medium text-gray-900">講義登録</p>
+              <p className="text-sm text-gray-500">新しい講義を追加</p>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <Bell className="w-6 h-6 text-purple-600 mb-2" />
+              <p className="font-medium text-gray-900">通知送信</p>
+              <p className="text-sm text-gray-500">受講生へ通知</p>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <FileText className="w-6 h-6 text-orange-600 mb-2" />
+              <p className="font-medium text-gray-900">レポート</p>
+              <p className="text-sm text-gray-500">進捗レポート出力</p>
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
