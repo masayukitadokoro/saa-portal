@@ -21,6 +21,16 @@ interface Video {
   article_content?: string;
 }
 
+interface Category {
+  id: number;
+  slug: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  video_count?: number;
+}
+
 interface Article {
   video_id: string;
   title: string;
@@ -38,100 +48,38 @@ interface Article {
 // 検索キーワード
 const searchKeywords = ['PMF', 'ビジネスモデル', 'マーケットサイズ', 'ピッチ', 'スタートアップ', '資金調達'];
 
-// 動画カテゴリ設定
-const videoCategoryConfig: Record<string, { 
-  name: string; 
-  description: string;
+// カテゴリアイコン・色設定
+const categoryStyles: Record<string, { 
   color: string; 
   bgColor: string; 
   borderColor: string; 
   icon: React.ReactNode;
-  enabled: boolean;
 }> = {
-  'startup-science': {
-    name: '起業の科学',
-    description: 'スタートアップの成功法則を科学的に解説',
+  'kagaku': {
     color: 'from-blue-500 to-blue-600',
     bgColor: 'bg-blue-50',
     borderColor: 'border-l-blue-500',
     icon: <Lightbulb className="w-5 h-5" />,
-    enabled: true,
   },
-  'business-model': {
-    name: 'ビジネスモデル解体新書',
-    description: '成功企業のビジネスモデルを徹底分析',
+  'taizen': {
     color: 'from-purple-500 to-purple-600',
     bgColor: 'bg-purple-50',
     borderColor: 'border-l-purple-500',
     icon: <BarChart3 className="w-5 h-5" />,
-    enabled: false,
   },
-  'success-startup': {
-    name: '成功スタートアップ解体新書',
-    description: '成功スタートアップの戦略を解剖',
+  'sanbo': {
     color: 'from-green-500 to-green-600',
     bgColor: 'bg-green-50',
     borderColor: 'border-l-green-500',
     icon: <TrendingUp className="w-5 h-5" />,
-    enabled: false,
-  },
-  'innovation-economy': {
-    name: 'Innovation Economy Roundup',
-    description: '最新のイノベーション経済動向',
-    color: 'from-cyan-500 to-cyan-600',
-    bgColor: 'bg-cyan-50',
-    borderColor: 'border-l-cyan-500',
-    icon: <Globe className="w-5 h-5" />,
-    enabled: false,
-  },
-  'pitch-analysis': {
-    name: 'スタートアップピッチ徹底検証',
-    description: 'ピッチの成功パターンを分析',
-    color: 'from-orange-500 to-orange-600',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-l-orange-500',
-    icon: <Presentation className="w-5 h-5" />,
-    enabled: false,
   },
 };
 
-// 記事カテゴリ設定
-const articleCategoryConfig: Record<string, { 
-  name: string; 
-  description: string;
-  color: string; 
-  bgColor: string; 
-  borderColor: string; 
-  icon: React.ReactNode;
-  enabled: boolean;
-}> = {
-  'startup-science': {
-    name: '起業の科学',
-    description: '起業の科学シリーズの解説記事',
-    color: 'from-indigo-500 to-purple-600',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-l-indigo-500',
-    icon: <FileText className="w-5 h-5" />,
-    enabled: true,
-  },
-  'business-model': {
-    name: 'ビジネスモデル解体新書',
-    description: 'ビジネスモデル分析の解説記事',
-    color: 'from-pink-500 to-rose-600',
-    bgColor: 'bg-pink-50',
-    borderColor: 'border-l-pink-500',
-    icon: <FileText className="w-5 h-5" />,
-    enabled: false,
-  },
-  'success-startup': {
-    name: '成功スタートアップ解体新書',
-    description: '成功事例の解説記事',
-    color: 'from-emerald-500 to-teal-600',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-l-emerald-500',
-    icon: <FileText className="w-5 h-5" />,
-    enabled: false,
-  },
+const defaultStyle = {
+  color: 'from-gray-500 to-gray-600',
+  bgColor: 'bg-gray-50',
+  borderColor: 'border-l-gray-500',
+  icon: <Play className="w-5 h-5" />,
 };
 
 type SortOrder = 'newest' | 'popular' | 'oldest';
@@ -139,6 +87,7 @@ type SortOrder = 'newest' | 'popular' | 'oldest';
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -146,10 +95,17 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
+        // カテゴリ取得
+        const categoriesRes = await fetch('/api/categories');
+        const categoriesData = await categoriesRes.json();
+        setCategories(categoriesData.categories || []);
+
+        // 動画取得
         const videosRes = await fetch('/api/videos?limit=100');
         const videosData = await videosRes.json();
         setVideos(videosData.videos || []);
 
+        // 記事取得
         const articlesRes = await fetch('/api/articles');
         const articlesData = await articlesRes.json();
         setArticles(articlesData.articles || []);
@@ -248,6 +204,10 @@ export default function HomePage() {
 
   const articleCount = articles.length;
 
+  const getCategoryStyle = (slug: string) => {
+    return categoryStyles[slug] || defaultStyle;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
@@ -323,40 +283,24 @@ export default function HomePage() {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(videoCategoryConfig).map(([key, config]) => (
-              config.enabled ? (
+            {categories.map((category) => {
+              const style = getCategoryStyle(category.slug);
+              return (
                 <Link
-                  key={key}
-                  href={`/category/${key}`}
-                  className={`relative rounded-xl border-l-4 ${config.borderColor} bg-white p-5 hover:shadow-lg transition group shadow-sm`}
+                  key={category.id}
+                  href={`/category/${category.slug}`}
+                  className={`relative rounded-xl border-l-4 ${style.borderColor} bg-white p-5 hover:shadow-lg transition group shadow-sm`}
                 >
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition`}>
-                    {config.icon}
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${style.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition`}>
+                    {style.icon}
                   </div>
-                  <h3 className="font-bold text-gray-900 mb-1">{config.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-1">{config.description}</p>
-                  <p className="text-sm font-medium text-blue-600">{videos.length}本の動画</p>
+                  <h3 className="font-bold text-gray-900 mb-1">{category.name}</h3>
+                  <p className="text-sm text-gray-500 mb-2 line-clamp-1">{category.description}</p>
+                  <p className="text-sm font-medium text-blue-600">{category.video_count || 0}本の動画</p>
                   <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition" />
                 </Link>
-              ) : (
-                <div
-                  key={key}
-                  className="relative rounded-xl border border-gray-200 bg-gray-50 p-5 cursor-not-allowed opacity-60"
-                >
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-500 text-xs font-medium rounded-full">
-                      Coming Soon
-                    </span>
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 mb-3">
-                    {config.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-400 mb-1">{config.name}</h3>
-                  <p className="text-sm text-gray-400 line-clamp-1">{config.description}</p>
-                  <p className="text-sm text-gray-400 mt-2">準備中</p>
-                </div>
-              )
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -368,53 +312,18 @@ export default function HomePage() {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(articleCategoryConfig).map(([key, config]) => (
-              config.enabled ? (
-                <Link
-                  key={key}
-                  href="/articles"
-                  className={`relative rounded-xl border-l-4 ${config.borderColor} bg-white p-5 hover:shadow-lg transition group shadow-sm`}
-                >
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition`}>
-                    {config.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-1">{config.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-1">{config.description}</p>
-                  <p className="text-sm font-medium text-purple-600">{articleCount}件の記事</p>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition" />
-                </Link>
-              ) : (
-                <div
-                  key={key}
-                  className="relative rounded-xl border border-gray-200 bg-gray-50 p-5 cursor-not-allowed opacity-60"
-                >
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-500 text-xs font-medium rounded-full">
-                      Coming Soon
-                    </span>
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 mb-3">
-                    {config.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-400 mb-1">{config.name}</h3>
-                  <p className="text-sm text-gray-400 line-clamp-1">{config.description}</p>
-                  <p className="text-sm text-gray-400 mt-2">準備中</p>
-                </div>
-              )
-            ))}
-
             {/* すべての記事タイル */}
             <Link
               href="/articles"
-              className="relative rounded-xl border-l-4 border-l-gray-400 bg-white p-5 hover:shadow-lg transition group shadow-sm"
+              className="relative rounded-xl border-l-4 border-l-indigo-500 bg-white p-5 hover:shadow-lg transition group shadow-sm"
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white mb-3 group-hover:scale-110 transition">
-                <ArrowRight className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-3 group-hover:scale-110 transition">
+                <FileText className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-gray-900 mb-1">すべての記事</h3>
               <p className="text-sm text-gray-500 mb-2">記事一覧を見る</p>
-              <p className="text-sm font-medium text-gray-600">{articleCount}件</p>
-              <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition" />
+              <p className="text-sm font-medium text-purple-600">{articleCount}件</p>
+              <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition" />
             </Link>
           </div>
         </section>
