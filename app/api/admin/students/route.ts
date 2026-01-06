@@ -19,24 +19,28 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // シンプルなクエリに変更（JOINなし）
   const { data: students, error } = await supabase
     .from('saa_students')
-    .select(`
-      *,
-      profiles:user_id (
-        display_name,
-        email,
-        avatar_url
-      ),
-      ta:assigned_ta_id (
-        display_name
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ students });
+  // profilesを別途取得
+  const userIds = students?.map(s => s.user_id) || [];
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, display_name, email, avatar_url')
+    .in('id', userIds);
+
+  // 結合
+  const studentsWithProfiles = students?.map(student => ({
+    ...student,
+    profiles: profiles?.find(p => p.id === student.user_id) || null
+  }));
+
+  return NextResponse.json({ students: studentsWithProfiles });
 }
