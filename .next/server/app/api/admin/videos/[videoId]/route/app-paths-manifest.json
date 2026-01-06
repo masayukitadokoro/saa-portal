@@ -1,0 +1,3 @@
+{
+  "/api/admin/videos/[videoId]/route": "app/api/admin/videos/[videoId]/route.js"
+}

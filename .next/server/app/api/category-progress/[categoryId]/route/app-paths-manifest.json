@@ -1,0 +1,3 @@
+{
+  "/api/category-progress/[categoryId]/route": "app/api/category-progress/[categoryId]/route.js"
+}

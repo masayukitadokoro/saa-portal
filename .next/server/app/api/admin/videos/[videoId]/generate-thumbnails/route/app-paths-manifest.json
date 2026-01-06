@@ -1,0 +1,3 @@
+{
+  "/api/admin/videos/[videoId]/generate-thumbnails/route": "app/api/admin/videos/[videoId]/generate-thumbnails/route.js"
+}
