@@ -1,494 +1,176 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { 
-  GraduationCap, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Search,
-  Upload,
-  Download,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  X
+  Users, BookOpen, Calendar, FileText, 
+  Settings, BarChart3, GraduationCap, Bell,
+  Video, ClipboardList
 } from 'lucide-react';
 
-interface Alumni {
-  id: string;
-  user_id: string;
-  batch_number: number;
-  status: 'pending' | 'approved' | 'rejected';
-  applied_at: string;
-  approved_at: string | null;
-  rejection_reason: string | null;
-  profiles: {
-    display_name: string | null;
-    email: string | null;
-  } | null;
-  saa_batches: {
-    name: string;
-  } | null;
-}
-
-interface AlumniMaster {
-  id: string;
-  email: string;
-  name: string;
-  batch_number: number;
-  saa_batches: {
-    name: string;
-  } | null;
-}
-
-export default function AdminAlumniPage() {
-  const [activeTab, setActiveTab] = useState<'applications' | 'master'>('applications');
-  const [alumni, setAlumni] = useState<Alumni[]>([]);
-  const [masterData, setMasterData] = useState<AlumniMaster[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [selectedAlumni, setSelectedAlumni] = useState<Alumni | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [processing, setProcessing] = useState(false);
-  const [uploadResult, setUploadResult] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export default function AdminDashboard() {
+  const { profile, loading, isAdmin } = useAuth();
+  const router = useRouter();
+  const [stats] = useState({
+    totalStudents: 0,
+    totalVideos: 360,
+    totalLectures: 0,
+    pendingAssignments: 0,
+  });
 
   useEffect(() => {
-    if (activeTab === 'applications') {
-      fetchAlumni();
-    } else {
-      fetchMasterData();
+    if (!loading && !isAdmin) {
+      router.push('/');
     }
-  }, [activeTab, statusFilter, page]);
+  }, [loading, isAdmin, router]);
 
-  const fetchAlumni = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/alumni?status=${statusFilter}&page=${page}&limit=20`);
-      if (res.ok) {
-        const data = await res.json();
-        setAlumni(data.alumni);
-        setTotalPages(data.totalPages);
-      }
-    } catch (error) {
-      console.error('Failed to fetch alumni:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
-  const fetchMasterData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/alumni/upload?page=${page}&limit=50`);
-      if (res.ok) {
-        const data = await res.json();
-        setMasterData(data.data);
-        setTotalPages(Math.ceil(data.total / 50));
-      }
-    } catch (error) {
-      console.error('Failed to fetch master data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!isAdmin) {
+    return null;
+  }
 
-  const handleApprove = async (alumni: Alumni) => {
-    setProcessing(true);
-    try {
-      const res = await fetch('/api/admin/alumni', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: alumni.id, action: 'approve' }),
-      });
-      if (res.ok) {
-        fetchAlumni();
-        setSelectedAlumni(null);
-      }
-    } catch (error) {
-      console.error('Failed to approve:', error);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedAlumni) return;
-    
-    setProcessing(true);
-    try {
-      const res = await fetch('/api/admin/alumni', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: selectedAlumni.id, 
-          action: 'reject',
-          rejection_reason: rejectionReason || null,
-        }),
-      });
-      if (res.ok) {
-        fetchAlumni();
-        setSelectedAlumni(null);
-        setRejectionReason('');
-      }
-    } catch (error) {
-      console.error('Failed to reject:', error);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setLoading(true);
-    setUploadResult(null);
-
-    try {
-      const res = await fetch('/api/admin/alumni/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      setUploadResult(data);
-      if (res.ok) {
-        fetchMasterData();
-      }
-    } catch (error) {
-      console.error('Failed to upload:', error);
-      setUploadResult({ error: 'Upload failed' });
-    } finally {
-      setLoading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const downloadTemplate = () => {
-    const csv = 'email,name,batch_number\nexample@email.com,山田太郎,5\n';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'alumni_template.csv';
-    a.click();
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">審査中</span>;
-      case 'approved':
-        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">承認済み</span>;
-      case 'rejected':
-        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">却下</span>;
-      default:
-        return null;
-    }
-  };
-
-  const getUserName = (alumni: Alumni) => {
-    if (alumni.profiles?.display_name) return alumni.profiles.display_name;
-    if (alumni.profiles?.email) return alumni.profiles.email.split('@')[0];
-    return 'Unknown';
-  };
-
-  const getUserEmail = (alumni: Alumni) => {
-    return alumni.profiles?.email || '-';
-  };
+  const menuItems = [
+    { icon: BarChart3, label: 'ダッシュボード', href: '/admin', active: true },
+    { icon: Users, label: '受講生管理', href: '/admin/students', active: false },
+    { icon: GraduationCap, label: 'TA管理', href: '/admin/tas', active: false },
+    { icon: Video, label: '動画管理', href: '/admin/videos', active: false },
+    { icon: Calendar, label: '講義管理', href: '/admin/lectures', active: false },
+    { icon: ClipboardList, label: '課題管理', href: '/admin/assignments', active: false },
+    { icon: FileText, label: '出席管理', href: '/admin/attendance', active: false },
+    { icon: Bell, label: '通知管理', href: '/admin/notifications', active: false },
+    { icon: Settings, label: '設定', href: '/admin/settings', active: false },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <GraduationCap className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">SAAアルムナイ管理</h1>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* サイドバー */}
+      <aside className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white fixed h-full">
+        <div className="p-6">
+          <h1 className="text-xl font-bold">SAA管理画面</h1>
+          <p className="text-sm text-slate-400 mt-1">{profile?.display_name}</p>
+        </div>
+        
+        <nav className="mt-4">
+          {menuItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-3 px-6 py-3 text-sm transition ${
+                item.active
+                  ? 'bg-white/10 border-l-4 border-purple-500 text-white'
+                  : 'text-slate-300 hover:bg-white/5 border-l-4 border-transparent'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="absolute bottom-4 left-0 right-0 px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition"
+          >
+            ← ポータルに戻る
+          </Link>
+        </div>
+      </aside>
+
+      {/* メインコンテンツ */}
+      <main className="flex-1 ml-64 p-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">ダッシュボード</h2>
+          <p className="text-gray-500 mt-1">SAA運営管理画面</p>
         </div>
 
-        {/* タブ */}
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => { setActiveTab('applications'); setPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'applications'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            申請一覧
-          </button>
-          <button
-            onClick={() => { setActiveTab('master'); setPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'master'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            マスターデータ
-          </button>
+        {/* 統計カード */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">受講生数</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Video className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">動画数</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalVideos}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">講義数</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalLectures}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">未確認課題</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* 申請一覧タブ */}
-        {activeTab === 'applications' && (
-          <div className="bg-white rounded-xl shadow-sm">
-            {/* フィルター */}
-            <div className="p-4 border-b flex items-center gap-4">
-              <Filter className="w-5 h-5 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="pending">審査中</option>
-                <option value="approved">承認済み</option>
-                <option value="rejected">却下</option>
-                <option value="all">すべて</option>
-              </select>
-            </div>
-
-            {/* テーブル */}
-            {loading ? (
-              <div className="p-8 flex justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              </div>
-            ) : alumni.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                該当する申請はありません
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">申請者</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">メール</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">バッチ</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">申請日</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ステータス</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">アクション</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {alumni.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm">{getUserName(item)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{getUserEmail(item)}</td>
-                        <td className="px-4 py-3 text-sm">{item.saa_batches?.name || `第${item.batch_number}期`}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {new Date(item.applied_at).toLocaleDateString('ja-JP')}
-                        </td>
-                        <td className="px-4 py-3">{getStatusBadge(item.status)}</td>
-                        <td className="px-4 py-3">
-                          {item.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApprove(item)}
-                                disabled={processing}
-                                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                              >
-                                承認
-                              </button>
-                              <button
-                                onClick={() => setSelectedAlumni(item)}
-                                disabled={processing}
-                                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                              >
-                                却下
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* ページネーション */}
-            {totalPages > 1 && (
-              <div className="p-4 border-t flex items-center justify-center gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <span className="text-sm text-gray-600">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            )}
+        {/* クイックアクション */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">クイックアクション</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <Users className="w-6 h-6 text-blue-600 mb-2" />
+              <p className="font-medium text-gray-900">受講生追加</p>
+              <p className="text-sm text-gray-500">新規受講生を登録</p>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <Calendar className="w-6 h-6 text-green-600 mb-2" />
+              <p className="font-medium text-gray-900">講義登録</p>
+              <p className="text-sm text-gray-500">新しい講義を追加</p>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <Bell className="w-6 h-6 text-purple-600 mb-2" />
+              <p className="font-medium text-gray-900">通知送信</p>
+              <p className="text-sm text-gray-500">受講生へ通知</p>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-left">
+              <FileText className="w-6 h-6 text-orange-600 mb-2" />
+              <p className="font-medium text-gray-900">レポート</p>
+              <p className="text-sm text-gray-500">進捗レポート出力</p>
+            </button>
           </div>
-        )}
-
-        {/* マスターデータタブ */}
-        {activeTab === 'master' && (
-          <div className="space-y-6">
-            {/* アップロードセクション */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-bold mb-4">CSV一括アップロード</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                アルムナイ情報をCSVファイルでアップロードできます。
-                フォーマット: email, name, batch_number
-              </p>
-              
-              <div className="flex gap-4 mb-4">
-                <button
-                  onClick={downloadTemplate}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  テンプレートをダウンロード
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Upload className="w-4 h-4" />
-                  CSVをアップロード
-                </button>
-              </div>
-
-              {uploadResult && (
-                <div className={`p-4 rounded-lg ${uploadResult.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                  {uploadResult.error ? (
-                    <p>{uploadResult.error}</p>
-                  ) : (
-                    <div>
-                      <p className="font-medium">アップロード完了</p>
-                      <p className="text-sm">
-                        インポート: {uploadResult.imported}件 / スキップ: {uploadResult.skipped}件
-                      </p>
-                      {uploadResult.errors && uploadResult.errors.length > 0 && (
-                        <div className="mt-2 text-sm">
-                          <p className="font-medium">エラー:</p>
-                          <ul className="list-disc list-inside">
-                            {uploadResult.errors.map((err: string, i: number) => (
-                              <li key={i}>{err}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* マスターデータ一覧 */}
-            <div className="bg-white rounded-xl shadow-sm">
-              <div className="p-4 border-b">
-                <h2 className="font-bold">登録済みマスターデータ</h2>
-              </div>
-              
-              {loading ? (
-                <div className="p-8 flex justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                </div>
-              ) : masterData.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  マスターデータはありません
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">メール</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">名前</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">バッチ</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {masterData.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm">{item.email}</td>
-                          <td className="px-4 py-3 text-sm">{item.name}</td>
-                          <td className="px-4 py-3 text-sm">{item.saa_batches?.name || `第${item.batch_number}期`}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 却下理由モーダル */}
-        {selectedAlumni && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">申請を却下</h2>
-                <button onClick={() => setSelectedAlumni(null)} className="text-gray-400 hover:text-gray-600">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <p className="text-sm text-gray-600 mb-4">
-                {getUserName(selectedAlumni)} さんの申請を却下します。
-              </p>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  却下理由（任意）
-                </label>
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
-                  rows={3}
-                  placeholder="却下理由を入力してください"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setSelectedAlumni(null)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={processing}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-                >
-                  {processing ? '処理中...' : '却下する'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
