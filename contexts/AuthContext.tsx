@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
 interface Profile {
@@ -30,53 +30,72 @@ const AuthContext = createContext<AuthContextType>({
   isStudent: false,
 });
 
+// Supabaseクライアントをモジュールレベルで1回だけ作成
+let supabaseClient: ReturnType<typeof createBrowserClient> | null = null;
+
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    supabaseClient = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return supabaseClient;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const supabase = useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ), []);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
+    // 既に初期化済みなら何もしない
+    if (initialized.current) {
+      console.log('[AuthContext] Already initialized, skipping');
+      return;
+    }
+    initialized.current = true;
+
+    const supabase = getSupabaseClient();
+    console.log('[AuthContext] Initializing...');
 
     const getSession = async () => {
       try {
+        console.log('[AuthContext] Getting session...');
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!mounted) return;
-        
+        console.log('[AuthContext] Session:', session ? 'exists' : 'null');
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          console.log('[AuthContext] Fetching profile...');
           const res = await fetch('/api/profile');
-          if (res.ok && mounted) {
+          if (res.ok) {
             const data = await res.json();
+            console.log('[AuthContext] Profile received:', data.profile?.saa_role);
             setProfile(data.profile);
+          } else {
+            console.log('[AuthContext] Profile fetch failed:', res.status);
           }
         }
       } catch (error) {
-        console.error('Session error:', error);
+        console.error('[AuthContext] Error:', error);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        console.log('[AuthContext] Setting loading to false');
+        setLoading(false);
       }
     };
 
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return;
-        
+      async (event, session) => {
+        console.log('[AuthContext] Auth state changed:', event);
         setUser(session?.user ?? null);
         if (session?.user) {
           const res = await fetch('/api/profile');
-          if (res.ok && mounted) {
+          if (res.ok) {
             const data = await res.json();
             setProfile(data.profile);
           }
@@ -87,19 +106,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => {
-      mounted = false;
+      console.log('[AuthContext] Cleanup');
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
-  const value = useMemo(() => ({
+  const value = {
     user,
     profile,
     loading,
     isAdmin: profile?.saa_role === 'admin',
     isTA: profile?.saa_role === 'ta',
     isStudent: profile?.saa_role === 'student',
-  }), [user, profile, loading]);
+  };
+
+  console.log('[AuthContext] Render - loading:', loading, 'isAdmin:', value.isAdmin, 'profile:', profile?.saa_role);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
