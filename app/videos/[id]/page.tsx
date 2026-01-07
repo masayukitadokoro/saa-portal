@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, use } from 'react';
 import { formatVideoTitle } from '@/lib/formatTitle';
 import { PipGuideModal } from '@/components/PipGuideModal';
 import { track } from '@/lib/tracking';
+import { YouTubePlayerWithProgress } from '@/components/YouTubePlayerWithProgress';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -123,6 +124,29 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
   const [showFullArticle, setShowFullArticle] = useState(false);
   const [showPipGuide, setShowPipGuide] = useState(false);
   const hasRecordedHistory = useRef(false);
+  const hasMarkedComplete = useRef(false);
+
+  const saveProgress = async (percent: number, seconds: number) => {
+    try {
+      await fetch("/api/student/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ video_id: resolvedParams.id, progress_percent: percent, last_position_seconds: seconds, is_completed: false }),
+      });
+    } catch (e) { console.error("Failed to save progress:", e); }
+  };
+
+  const markAsComplete = async () => {
+    if (hasMarkedComplete.current) return;
+    hasMarkedComplete.current = true;
+    try {
+      await fetch("/api/student/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ video_id: resolvedParams.id, progress_percent: 100, last_position_seconds: video?.duration || 0, is_completed: true }),
+      });
+    } catch (e) { console.error("Failed to mark complete:", e); }
+  };
 
   useEffect(() => {
     fetchVideo();
@@ -386,19 +410,13 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
       <div className="w-full bg-gray-100">
         <div className="max-w-6xl mx-auto">
           <div className="relative aspect-video bg-black">
-            {youtubeId ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
-                title={formatVideoTitle(video.title, video.display_order)}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                <Play className="w-16 h-16" />
-              </div>
-            )}
+            <YouTubePlayerWithProgress
+              videoId={youtubeId}
+              title={formatVideoTitle(video.title, video.display_order)}
+              duration={video.duration}
+              onProgress={saveProgress}
+              onComplete={markAsComplete}
+            />
           </div>
         </div>
       </div>
