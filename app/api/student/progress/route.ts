@@ -25,20 +25,16 @@ export async function POST(request: NextRequest) {
       .eq('video_id', video_id)
       .single();
 
-    const now = new Date().toISOString();
-    
     if (existing) {
       // 既に完了している場合は完了状態を維持
       const updateData: Record<string, unknown> = {
-        progress_percent: progress_percent ?? existing.progress_percent,
+        progress_percent: progress_percent ?? 0,
         last_position_seconds: last_position_seconds ?? 0,
-        updated_at: now,
       };
 
-      // 新たに完了した場合のみ is_completed と completed_at を更新
+      // 新たに完了した場合のみ is_completed を更新
       if (is_completed && !existing.is_completed) {
         updateData.is_completed = true;
-        updateData.completed_at = now;
       }
 
       const { error: updateError } = await supabase
@@ -60,7 +56,6 @@ export async function POST(request: NextRequest) {
           progress_percent: progress_percent ?? 0,
           last_position_seconds: last_position_seconds ?? 0,
           is_completed: is_completed ?? false,
-          completed_at: is_completed ? now : null,
         });
 
       if (insertError) {
