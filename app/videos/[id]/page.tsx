@@ -297,7 +297,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const youtubeId = video.youtube_id || extractYouTubeId(video.video_url);
+  const youtubeId = video.youtube_id || video.video_id || extractYouTubeId(video.video_url);
   
   // points または key_points を使用
   const videoPoints = video.points || video.key_points || [];
