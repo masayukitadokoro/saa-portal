@@ -47,7 +47,7 @@ export default function StudentDashboardPage() {
         setCategoryProgress(data.categoryProgress || []);
         setRecentlyWatched((data.recentlyWatched || []).slice(0, 4));
         setContinueWatching(data.continueWatching);
-        setStreakDays(5); // TODO: 実際のストリーク計算
+        setStreakDays(data.streakDays || 0); // TODO: 実際のストリーク計算
       }
 
       // スケジュール取得（今後2週間）

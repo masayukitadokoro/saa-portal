@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Search, CheckCircle, Play, Clock, ArrowLeft } from 'lucide-react';
+import { Search, CheckCircle, Clock, ArrowLeft, PlayCircle } from 'lucide-react';
 import { StudentLayout } from '@/components/student/StudentLayout';
 import { Card, ProgressBar } from '@/components/student/ui';
 
@@ -67,7 +67,9 @@ export default function VideoCategoryPage() {
       const data = await response.json();
       setCategory(data.category);
       setStats(data.stats);
-      setVideos(data.videos);
+      // display_orderがない動画を除外
+      const filteredVideos = (data.videos || []).filter((v: Video) => v.display_order != null);
+      setVideos(filteredVideos);
     } catch (err) {
       console.error('Fetch error:', err);
       setError('動画の取得に失敗しました');
@@ -81,14 +83,12 @@ export default function VideoCategoryPage() {
     video.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // タイトルをフォーマット（番号_タイトル → 番号 タイトル）
+  // タイトルをフォーマット（番号_タイトル → 番号. タイトル）
   const formatTitle = (title: string, displayOrder?: number) => {
     if (displayOrder) {
-      // 先頭の番号パターンを除去してdisplay_orderを使用
       const cleanTitle = title.replace(/^\d+(-\d+)?[_\s]+/, '');
       return `${displayOrder}. ${cleanTitle}`;
     }
-    // display_orderがない場合は元のタイトルを整形
     return title.replace(/_/g, ' ');
   };
 
@@ -210,18 +210,27 @@ export default function VideoCategoryPage() {
                       }}
                     >
                       {!video.thumbnail_url && (
-                        <Play className="w-8 h-8 text-white/70 group-hover:scale-110 transition" />
+                        <PlayCircle className="w-10 h-10 text-white/70 group-hover:scale-110 transition" />
                       )}
-                      {video.is_completed && (
-                        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                      
+                      {/* ステータスラベル */}
+                      {video.is_completed ? (
+                        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 font-medium shadow">
                           <CheckCircle className="w-3 h-3" />
                           視聴済
                         </div>
-                      )}
+                      ) : video.progress_percent > 0 ? (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 font-medium shadow">
+                          <Clock className="w-3 h-3" />
+                          視聴中
+                        </div>
+                      ) : null}
+
+                      {/* 進捗バー（途中の場合） */}
                       {!video.is_completed && video.progress_percent > 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+                        <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/40">
                           <div
-                            className="h-full bg-white"
+                            className="h-full bg-blue-400"
                             style={{ width: `${video.progress_percent}%` }}
                           />
                         </div>
@@ -230,18 +239,18 @@ export default function VideoCategoryPage() {
 
                     {/* 情報 */}
                     <div className="p-3">
-                      <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
+                      <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-2">
                         {formatTitle(video.title, video.display_order)}
                       </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        {video.duration && (
-                          <span className="flex items-center gap-1 text-xs text-gray-500">
-                            <Clock className="w-3 h-3" />
-                            {formatDuration(video.duration)}
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          {formatDuration(video.duration)}
+                        </div>
+                        
+                        {/* 進捗率（途中視聴の場合、目立つ表示） */}
                         {video.progress_percent > 0 && !video.is_completed && (
-                          <span className="text-xs text-indigo-600">
+                          <span className="text-sm font-bold text-blue-600">
                             {video.progress_percent}%
                           </span>
                         )}

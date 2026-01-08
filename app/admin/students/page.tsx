@@ -102,13 +102,38 @@ export default function StudentsPage() {
     return styles[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      active: '受講中',
+      completed: '修了',
+      dropped: '中退',
+      pending: '保留',
+    };
+    return labels[status] || status;
+  };
+
   const getEngagementBadge = (status: string) => {
     const styles: Record<string, string> = {
-      high: 'bg-green-100 text-green-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      low: 'bg-red-100 text-red-800',
+      excellent: 'bg-emerald-100 text-emerald-800',
+      good: 'bg-blue-100 text-blue-800',
+      warning: 'bg-yellow-100 text-yellow-800',
+      danger: 'bg-red-100 text-red-800',
     };
     return styles[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getEngagementLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      excellent: '優秀',
+      good: '順調',
+      warning: '要注意',
+      danger: '危険',
+    };
+    return labels[status] || status;
+  };
+
+  const handleRowClick = (studentId: string) => {
+    router.push(`/admin/students/${studentId}`);
   };
 
   return (
@@ -195,7 +220,11 @@ export default function StudentsPage() {
                 </tr>
               ) : (
                 filteredStudents.map((student) => (
-                  <tr key={student.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                  <tr 
+                    key={student.id} 
+                    onClick={() => handleRowClick(student.id)}
+                    className="border-b border-gray-50 hover:bg-purple-50 transition cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -217,13 +246,13 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(student.status)}`}>
-                        {student.status}
+                        {getStatusLabel(student.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEngagementBadge(student.engagement_status)}`}>
-                          {student.engagement_status}
+                          {getEngagementLabel(student.engagement_status)}
                         </span>
                         <span className="text-sm text-gray-500">{student.engagement_score}点</span>
                       </div>

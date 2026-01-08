@@ -8,6 +8,47 @@ const CATEGORY_MAP: Record<number, { slug: string; name: string; color: string }
   3: { slug: 'sanbo', name: '起業参謀', color: '#8B5CF6' },
 };
 
+// 連続学習日数を計算
+function calculateStreakDays(progressRecords: { updated_at: string }[]): number {
+  if (progressRecords.length === 0) return 0;
+
+  // 日付のみを抽出してユニークな日付のセットを作成
+  const uniqueDates = new Set<string>();
+  progressRecords.forEach(record => {
+    const date = new Date(record.updated_at).toISOString().split('T')[0];
+    uniqueDates.add(date);
+  });
+
+  // 日付を降順にソート
+  const sortedDates = Array.from(uniqueDates).sort((a, b) => b.localeCompare(a));
+  
+  // 今日または昨日から連続している日数をカウント
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  // 最新の学習日が今日か昨日でなければストリークは0
+  if (sortedDates[0] !== today && sortedDates[0] !== yesterday) {
+    return 0;
+  }
+
+  let streak = 0;
+  let expectedDate = new Date(sortedDates[0]);
+
+  for (const dateStr of sortedDates) {
+    const currentDate = new Date(dateStr);
+    const diffDays = Math.round((expectedDate.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000));
+    
+    if (diffDays === 0) {
+      streak++;
+      expectedDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 export async function GET() {
   const supabase = await createClient();
 
@@ -24,112 +65,53 @@ export async function GET() {
   try {
     // 並列でデータ取得
     const [
-      videosCountResult,
-      watchHistoryResult,
-      regularLecturesResult,
-      expertLecturesResult,
+      videosResult,
+      progressResult,
     ] = await Promise.all([
-      // カテゴリ別の動画総数を取得
+      // 全動画を取得（カテゴリ1,2,3のみ）
       supabase
-        .from('videos')
-        .select('category_id')
-        .is('deleted_at', null)
-        .in('category_id', [1, 2, 3]),
-
-      // 視聴履歴（既存のwatch_historyテーブルを使用）
-      supabase
-        .from('watch_history')
-        .select(`
-          video_id,
-          watched_at,
-          watch_duration,
-          progress_seconds,
-          completed,
-          updated_at
-        `)
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(20),
-
-      // 今後の定例講義
-      supabase
-        .from('saa_regular_lectures')
-        .select('id, title, scheduled_at, lecture_number')
-        .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at')
-        .limit(3),
-
-      // 今後の専門家講義
-      supabase
-        .from('saa_expert_lectures')
-        .select('id, title, scheduled_at, expert_name')
-        .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at')
-        .limit(3),
-    ]);
-
-    // 視聴したvideo_idのリストを取得
-    const watchedVideoIds = watchHistoryResult.data?.map(h => h.video_id) || [];
-
-    // 視聴した動画の詳細情報を取得
-    let recentVideos: any[] = [];
-    if (watchedVideoIds.length > 0) {
-      const { data: videosData } = await supabase
         .from('videos')
         .select('video_id, title, thumbnail_url, duration, category_id, display_order')
-        .in('video_id', watchedVideoIds);
+        .is('deleted_at', null)
+        .in('category_id', [1, 2, 3])
+        .not('display_order', 'is', null),
 
-      // 視聴履歴と動画情報を結合
-      const videoMap = new Map(videosData?.map(v => [v.video_id, v]) || []);
-      recentVideos = (watchHistoryResult.data || [])
-        .map(h => {
-          const video = videoMap.get(h.video_id);
-          if (!video) return null;
-          return {
-            video_id: h.video_id,
-            title: video.title,
-            thumbnail_url: video.thumbnail_url,
-            duration: video.duration,
-            category_id: video.category_id,
-            display_order: video.display_order,
-            progress_seconds: h.progress_seconds,
-            progress_percent: video.duration ? Math.round((h.progress_seconds / video.duration) * 100) : 0,
-            is_completed: h.completed,
-            watched_at: h.watched_at,
-          };
-        })
-        .filter(Boolean)
-        .slice(0, 5);
-    }
-
-    // 視聴完了した動画数をカテゴリ別に集計
-    const completedByCategory = new Map<number, number>();
-    if (watchedVideoIds.length > 0) {
-      const { data: completedVideos } = await supabase
-        .from('watch_history')
-        .select('video_id')
+      // ユーザーの視聴進捗を取得（saa_video_progressテーブル）
+      supabase
+        .from('saa_video_progress')
+        .select('video_id, progress_percent, is_completed, last_position_seconds, updated_at')
         .eq('user_id', user.id)
-        .eq('completed', true);
+        .order('updated_at', { ascending: false }),
+    ]);
 
-      if (completedVideos && completedVideos.length > 0) {
-        const completedIds = completedVideos.map(c => c.video_id);
-        const { data: videoCategories } = await supabase
-          .from('videos')
-          .select('video_id, category_id')
-          .in('video_id', completedIds);
+    const videos = videosResult.data || [];
+    const progressRecords = progressResult.data || [];
 
-        videoCategories?.forEach(v => {
-          const current = completedByCategory.get(v.category_id) || 0;
-          completedByCategory.set(v.category_id, current + 1);
-        });
-      }
-    }
+    // 進捗データをMapに変換
+    const progressMap = new Map(
+      progressRecords.map(p => [p.video_id, p])
+    );
 
-    // カテゴリ別の動画総数を集計
+    // 動画情報をMapに変換
+    const videoMap = new Map(
+      videos.map(v => [v.video_id, v])
+    );
+
+    // カテゴリ別の集計
     const totalByCategory = new Map<number, number>();
-    videosCountResult.data?.forEach(v => {
-      const current = totalByCategory.get(v.category_id) || 0;
-      totalByCategory.set(v.category_id, current + 1);
+    const completedByCategory = new Map<number, number>();
+
+    videos.forEach(v => {
+      // 総数をカウント
+      const currentTotal = totalByCategory.get(v.category_id) || 0;
+      totalByCategory.set(v.category_id, currentTotal + 1);
+
+      // 完了数をカウント
+      const progress = progressMap.get(v.video_id);
+      if (progress?.is_completed) {
+        const currentCompleted = completedByCategory.get(v.category_id) || 0;
+        completedByCategory.set(v.category_id, currentCompleted + 1);
+      }
     });
 
     // カテゴリ別進捗を作成
@@ -147,34 +129,37 @@ export async function GET() {
       };
     });
 
-    // 今週のイベントを作成
-    const upcomingEvents = [
-      ...(regularLecturesResult.data || []).map(l => ({
-        id: l.id,
-        type: 'regular' as const,
-        title: `第${l.lecture_number}回: ${l.title}`,
-        scheduled_at: l.scheduled_at,
-      })),
-      ...(expertLecturesResult.data || []).map(l => ({
-        id: l.id,
-        type: 'expert' as const,
-        title: l.title,
-        subtitle: l.expert_name,
-        scheduled_at: l.scheduled_at,
-      })),
-    ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
-     .slice(0, 5);
+    // 最近視聴した動画（進捗があるもの）
+    const recentlyWatched = progressRecords
+      .filter(p => videoMap.has(p.video_id))
+      .slice(0, 5)
+      .map(p => {
+        const video = videoMap.get(p.video_id)!;
+        return {
+          video_id: p.video_id,
+          title: video.title,
+          thumbnail_url: video.thumbnail_url,
+          duration: video.duration,
+          category_id: video.category_id,
+          display_order: video.display_order,
+          progress_percent: p.progress_percent,
+          is_completed: p.is_completed,
+        };
+      });
 
-    // 続きから再生する動画
-    const continueWatching = recentVideos.find(
+    // 続きから再生する動画（未完了で進捗があるもの）
+    const continueWatching = recentlyWatched.find(
       v => !v.is_completed && v.progress_percent > 0 && v.progress_percent < 100
     ) || null;
 
+    // 連続学習日数を計算
+    const streakDays = calculateStreakDays(progressRecords);
+
     return NextResponse.json({
       categoryProgress,
-      upcomingEvents,
-      recentlyWatched: recentVideos,
+      recentlyWatched,
       continueWatching,
+      streakDays,
       // 以下は後で実装
       latestSCM: null,
       graduationProgress: null,
