@@ -19,17 +19,12 @@ export async function GET(
         title,
         summary,
         article_content,
-        article_cover_url,
         thumbnail_url,
-        custom_thumbnail_url,
         video_url,
         view_count,
         display_order,
         created_at,
-        category_id,
-        categories (
-          name
-        )
+        category_id
       `)
       .eq('video_id', id)
       .is('deleted_at', null)
@@ -50,10 +45,9 @@ export async function GET(
         title: article.title,
         summary: article.summary,
         content: article.article_content,
-        thumbnail_url: article.article_cover_url || article.custom_thumbnail_url || article.thumbnail_url,
+        thumbnail_url: article.thumbnail_url,
         view_count: article.view_count,
         published_at: article.created_at,
-        category: (article.categories as any)?.name,
         display_order: article.display_order,
       }
     });
