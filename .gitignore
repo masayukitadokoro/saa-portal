@@ -1,0 +1,7 @@
+
+# Build outputs
+.next/
+node_modules/
+
+# Environment files
+.env.local
