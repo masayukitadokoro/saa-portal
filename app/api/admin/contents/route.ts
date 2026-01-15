@@ -11,12 +11,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 動画一覧を取得
+    // 動画一覧を取得（カテゴリ情報も含む）
     const { data: videos, error: videosError } = await supabase
       .from('videos')
-      .select('video_id, title, thumbnail_url, custom_thumbnail_url, video_url, article_content')
+      .select(`
+        video_id, 
+        title, 
+        thumbnail_url, 
+        video_url, 
+        article_content,
+        category_id,
+        duration,
+        categories:category_id (
+          id,
+          name,
+          slug
+        )
+      `)
       .is('deleted_at', null)
-      .order('video_id', { ascending: true });
+      .order('category_id', { ascending: true })
+      .order('sort_order', { ascending: true });
 
     if (videosError) {
       console.error('Videos fetch error:', videosError);

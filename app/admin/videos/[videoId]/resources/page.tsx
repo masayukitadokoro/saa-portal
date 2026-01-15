@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   ArrowLeft, 
   Save, 
@@ -51,7 +51,7 @@ const MAX_RESOURCES = 5;
 export default function AdminResourcesEditPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const videoId = params.videoId as string;
 
   const [video, setVideo] = useState<VideoData | null>(null);
@@ -239,7 +239,7 @@ export default function AdminResourcesEditPage() {
     return resourceTypes.find(t => t.value === type) || resourceTypes[3];
   };
 
-  if (!user) {
+  if (!profile) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-500">ログインが必要です</p>

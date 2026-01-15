@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@supabase/supabase-js';
 import {
   Save, Check, AlertCircle, Clock, X, Sparkles, Loader2, Plus, 
@@ -141,7 +141,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
 export default function NoteStyleArticleEditor() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const videoId = params.videoId as string;
 
   const [video, setVideo] = useState<VideoData | null>(null);
@@ -688,7 +688,7 @@ export default function NoteStyleArticleEditor() {
     }
   };
 
-  if (!user) return <div className="min-h-screen bg-white flex items-center justify-center"><p className="text-gray-500">ログインが必要です</p></div>;
+  if (!profile) return <div className="min-h-screen bg-white flex items-center justify-center"><p className="text-gray-500">ログインが必要です</p></div>;
   if (loading) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
   if (error && !video) return <div className="min-h-screen bg-white flex items-center justify-center"><p className="text-red-600">{error}</p></div>;
 

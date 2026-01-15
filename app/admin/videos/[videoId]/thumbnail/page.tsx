@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   ArrowLeft,
   Loader2,
@@ -36,7 +36,7 @@ interface TemplateImage {
 export default function ThumbnailEditorPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const videoId = params.videoId as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -188,7 +188,7 @@ export default function ThumbnailEditorPage() {
     router.push('/admin/contents');
   };
 
-  if (!user) {
+  if (!profile) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p>ログインが必要です</p></div>;
   }
 
