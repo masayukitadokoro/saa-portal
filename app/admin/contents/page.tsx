@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/components/AuthProvider';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { 
-  ArrowLeft, 
   FileText, 
   Paperclip,
   Search,
@@ -30,7 +29,6 @@ type SortType = 'title-asc' | 'title-desc' | 'default';
 type FilterType = 'all' | 'article-done' | 'article-pending' | 'thumbnail-done' | 'thumbnail-pending' | 'resource-done' | 'resource-pending';
 
 export default function AdminContentsPage() {
-  const { user } = useAuth();
   const [videos, setVideos] = useState<VideoContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,46 +148,27 @@ export default function AdminContentsPage() {
     'title-desc': 'タイトル降順 (Z→A)',
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">ログインが必要です</p>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link
-            href="/admin"
-            className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            管理者ダッシュボードに戻る
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* タイトル＆統計 */}
-        <div className="flex items-start justify-between mb-6">
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* ヘッダー */}
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">📁 コンテンツ管理</h1>
-            <p className="text-gray-500">全{stats.total}件の動画</p>
+            <h1 className="text-2xl font-bold text-gray-900">コンテンツ管理</h1>
+            <p className="text-gray-500 mt-1">全{stats.total}件の動画</p>
           </div>
-          <div className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center gap-3">
-            <Play className="w-5 h-5 text-blue-600" />
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-200 flex items-center gap-3">
+            <Play className="w-5 h-5 text-indigo-600" />
             <div>
               <p className="text-xs text-gray-500">総動画数</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
@@ -198,7 +177,7 @@ export default function AdminContentsPage() {
         </div>
 
         {/* 検索＆フィルター＆ソート */}
-        <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-4 flex flex-wrap items-center gap-4">
             {/* 検索 */}
             <div className="flex-1 min-w-[200px] max-w-md">
@@ -209,7 +188,7 @@ export default function AdminContentsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="タイトルで検索..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -231,7 +210,7 @@ export default function AdminContentsPage() {
                       key={key}
                       onClick={() => { setFilterType(key); setShowFilterMenu(false); }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${
-                        filterType === key ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                        filterType === key ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
                       }`}
                     >
                       {filterLabels[key]}
@@ -260,7 +239,7 @@ export default function AdminContentsPage() {
                       key={key}
                       onClick={() => { setSortType(key); setShowSortMenu(false); }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${
-                        sortType === key ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                        sortType === key ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
                       }`}
                     >
                       {sortLabels[key]}
@@ -280,7 +259,7 @@ export default function AdminContentsPage() {
         {/* 動画一覧 */}
         <div className="space-y-4">
           {filteredAndSortedVideos.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center text-gray-500">
+            <div className="bg-white rounded-xl p-8 text-center text-gray-500 border border-gray-200">
               該当する動画がありません
             </div>
           ) : (
@@ -290,7 +269,7 @@ export default function AdminContentsPage() {
               const hasResources = video.resource_count > 0;
               
               return (
-                <div key={video.video_id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div key={video.video_id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="flex items-start gap-4 p-4">
                     {/* サムネイル */}
                     <div className="w-40 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -307,7 +286,7 @@ export default function AdminContentsPage() {
                       <Link 
                         href={`/videos/${video.video_id}`}
                         target="_blank"
-                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 mb-3"
+                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600 mb-3"
                       >
                         <span>動画詳細ページで確認</span>
                         <span>↗</span>
@@ -367,7 +346,7 @@ export default function AdminContentsPage() {
             })
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

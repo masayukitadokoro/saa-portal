@@ -22,6 +22,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/admin/students/[id]",
+      "regex": "^/admin/students/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/admin/students/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/admin/videos/[videoId]/article",
       "regex": "^/admin/videos/([^/]+?)/article(?:/)?$",
       "routeKeys": {
@@ -52,6 +60,22 @@
         "nxtPvideoId": "nxtPvideoId"
       },
       "namedRegex": "^/admin/videos/(?<nxtPvideoId>[^/]+?)/thumbnail(?:/)?$"
+    },
+    {
+      "page": "/api/admin/schedules/[id]",
+      "regex": "^/api/admin/schedules/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/schedules/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/students/[id]",
+      "regex": "^/api/admin/students/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/students/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
       "page": "/api/admin/users/[id]",
@@ -159,6 +183,14 @@
       "namedRegex": "^/api/mypage/history/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/student/videos/[category]",
+      "regex": "^/api/student/videos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcategory": "nxtPcategory"
+      },
+      "namedRegex": "^/api/student/videos/(?<nxtPcategory>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/api/videos/[videoId]",
       "regex": "^/api/videos/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -189,6 +221,14 @@
         "nxtPslug": "nxtPslug"
       },
       "namedRegex": "^/category/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/student/videos/[category]",
+      "regex": "^/student/videos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcategory": "nxtPcategory"
+      },
+      "namedRegex": "^/student/videos/(?<nxtPcategory>[^/]+?)(?:/)?$"
     },
     {
       "page": "/videos/[id]",
@@ -267,6 +307,18 @@
       "namedRegex": "^/admin/email/compose(?:/)?$"
     },
     {
+      "page": "/admin/events",
+      "regex": "^/admin/events(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/events(?:/)?$"
+    },
+    {
+      "page": "/admin/schedules",
+      "regex": "^/admin/schedules(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/schedules(?:/)?$"
+    },
+    {
       "page": "/admin/students",
       "regex": "^/admin/students(?:/)?$",
       "routeKeys": {},
@@ -307,6 +359,12 @@
       "regex": "^/api/admin/contents(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/contents(?:/)?$"
+    },
+    {
+      "page": "/api/admin/schedules",
+      "regex": "^/api/admin/schedules(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/schedules(?:/)?$"
     },
     {
       "page": "/api/admin/speaker-images",
@@ -447,6 +505,24 @@
       "namedRegex": "^/api/search(?:/)?$"
     },
     {
+      "page": "/api/student/dashboard",
+      "regex": "^/api/student/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/student/dashboard(?:/)?$"
+    },
+    {
+      "page": "/api/student/progress",
+      "regex": "^/api/student/progress(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/student/progress(?:/)?$"
+    },
+    {
+      "page": "/api/student/schedule",
+      "regex": "^/api/student/schedule(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/student/schedule(?:/)?$"
+    },
+    {
       "page": "/api/videos",
       "regex": "^/api/videos(?:/)?$",
       "routeKeys": {},
@@ -577,6 +653,42 @@
       "regex": "^/search(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/search(?:/)?$"
+    },
+    {
+      "page": "/student",
+      "regex": "^/student(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/student(?:/)?$"
+    },
+    {
+      "page": "/student/guide",
+      "regex": "^/student/guide(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/student/guide(?:/)?$"
+    },
+    {
+      "page": "/student/mypage",
+      "regex": "^/student/mypage(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/student/mypage(?:/)?$"
+    },
+    {
+      "page": "/student/schedule",
+      "regex": "^/student/schedule(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/student/schedule(?:/)?$"
+    },
+    {
+      "page": "/student/scm",
+      "regex": "^/student/scm(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/student/scm(?:/)?$"
+    },
+    {
+      "page": "/student/scm/assessment",
+      "regex": "^/student/scm/assessment(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/student/scm/assessment(?:/)?$"
     },
     {
       "page": "/terms",
