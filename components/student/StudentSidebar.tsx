@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  FolderOpen,
 } from 'lucide-react';
 import type { CategoryProgress } from '@/types/student-dashboard';
 
@@ -87,6 +88,13 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
       label: 'スケジュール',
       icon: <Calendar className="w-5 h-5" />,
       href: '/student/schedule',
+    },
+    // 課題提出メニューを追加
+    {
+      id: 'submissions',
+      label: '課題提出',
+      icon: <FolderOpen className="w-5 h-5" />,
+      href: '/student/submissions',
     },
     {
       id: 'guide',

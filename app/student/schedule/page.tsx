@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { Video, Filter, ChevronRight } from 'lucide-react';
 import { StudentLayout } from '@/components/student/StudentLayout';
 import { Card } from '@/components/student/ui';
@@ -181,7 +182,7 @@ export default function SchedulePage() {
                     `} />
 
                     {/* イベントカード */}
-                    <Card className={`
+                    <Link href={`/student/schedule/${event.id}`} className="block"><Card className={`cursor-pointer hover:shadow-md 
                       flex-1 p-4 transition-all
                       ${isNextEvent ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : ''}
                     `}>
@@ -239,7 +240,7 @@ export default function SchedulePage() {
                           </a>
                         </div>
                       )}
-                    </Card>
+                    </Card></Link>
                   </div>
                 );
               })}
