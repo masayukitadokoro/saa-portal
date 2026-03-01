@@ -7,7 +7,6 @@ import {
   Home,
   Video,
   Calendar,
-  Users,
   BarChart3,
   BookOpen,
   User,
@@ -60,19 +59,19 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
         {
           id: 'kagaku',
           label: '起業の科学',
-          href: '/student/videos/kagaku',
+          href: '/student/videos/kagaku/learn',
           progress: categoryProgress.find((c) => c.category === 'kagaku')?.progressPercent,
         },
         {
           id: 'taizen',
           label: '起業大全',
-          href: '/student/videos/taizen',
+          href: '/student/videos/taizen/learn',
           progress: categoryProgress.find((c) => c.category === 'taizen')?.progressPercent,
         },
         {
           id: 'sanbo',
           label: '起業参謀',
-          href: '/student/videos/sanbo',
+          href: '/student/videos/sanbo/learn',
           progress: categoryProgress.find((c) => c.category === 'sanbo')?.progressPercent,
         },
       ],
@@ -89,7 +88,6 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
       icon: <Calendar className="w-5 h-5" />,
       href: '/student/schedule',
     },
-    // 課題提出メニューを追加
     {
       id: 'submissions',
       label: '課題提出',
@@ -119,31 +117,34 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
 
   const SidebarContent = () => (
     <>
-      {/* Logo */}
-      <div className="p-6">
-        <Link href="/student" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white text-xl">🚀</span>
-          </div>
-          <div>
-            <div className="font-bold text-white">SAA現役生</div>
-            <div className="text-xs text-slate-400">ポータル</div>
-          </div>
-        </Link>
-      </div>
+      <div className="pt-16" />
+
+
+
+
+
+
+
+
+
+
+
+
+      {/* Divider */}
+      <div className="mx-4 border-t border-gray-100 mb-2" />
 
       {/* Navigation */}
       <nav className="flex-1 px-3">
         {menuItems.map((item) => (
-          <div key={item.id} className="mb-1">
+          <div key={item.id} className="mb-0.5">
             {item.children ? (
               <>
                 <button
                   onClick={() => toggleMenu(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors border-none cursor-pointer ${
                     isMenuExpanded(item.id)
-                      ? 'bg-white/10 text-white'
-                      : 'text-slate-300 hover:bg-white/5'
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 bg-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -157,21 +158,21 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
                   )}
                 </button>
                 {isMenuExpanded(item.id) && (
-                  <div className="ml-4 mt-1 space-y-1">
+                  <div className="ml-4 mt-0.5 space-y-0.5">
                     {item.children.map((child) => (
                       <Link
                         key={child.id}
                         href={child.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors no-underline ${
                           isActive(child.href)
-                            ? 'bg-indigo-500/20 text-indigo-300 border-l-2 border-indigo-400'
-                            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                            ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-2 border-indigo-500'
+                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                         }`}
                       >
                         <span>{child.label}</span>
                         {child.progress !== undefined && (
-                          <span className="text-xs opacity-70">{child.progress}%</span>
+                          <span className="text-xs text-gray-400">{child.progress}%</span>
                         )}
                       </Link>
                     ))}
@@ -182,10 +183,10 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
               <Link
                 href={item.href || '#'}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors no-underline ${
                   isActive(item.href)
-                    ? 'bg-indigo-500/20 text-indigo-300 border-l-2 border-indigo-400'
-                    : 'text-slate-300 hover:bg-white/5'
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-2 border-indigo-500'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 {item.icon}
@@ -197,10 +198,10 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
       </nav>
 
       {/* Bottom */}
-      <div className="p-3 border-t border-white/10">
+      <div className="p-3 border-t border-gray-100">
         <Link
           href="/student/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors no-underline"
         >
           <Settings className="w-5 h-5" />
           <span className="text-sm">設定</span>
@@ -209,7 +210,7 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
           onClick={() => {
             // TODO: ログアウト処理
           }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors border-none cursor-pointer bg-transparent"
         >
           <LogOut className="w-5 h-5" />
           <span className="text-sm">ログアウト</span>
@@ -221,23 +222,23 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-gradient-to-b from-slate-900 to-slate-800 fixed h-full z-40">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200 fixed h-full z-20">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 z-50">
+      {/* Mobile Header - purple gradient */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-between px-4 z-50 shadow-md">
         <button
           onClick={() => setMobileMenuOpen(true)}
-          className="p-2 text-white hover:bg-white/10 rounded-lg"
+          className="p-2 text-white hover:bg-white/10 rounded-lg border-none cursor-pointer bg-transparent"
         >
           <Menu className="w-6 h-6" />
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-white text-xl">🚀</span>
-          <span className="font-bold text-white">SAA</span>
+          <span className="text-white text-lg">🚀</span>
+          <span className="font-bold text-white text-[15px]">SAA学習ポータル</span>
         </div>
-        <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
+        <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
           {userName?.charAt(0) || '?'}
         </div>
       </header>
@@ -246,15 +247,15 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-gradient-to-b from-slate-900 to-slate-800 flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <span className="text-white font-bold">メニュー</span>
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <span className="text-gray-900 font-bold text-[15px]">メニュー</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 text-white hover:bg-white/10 rounded-lg"
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg border-none cursor-pointer bg-transparent"
               >
                 <X className="w-5 h-5" />
               </button>

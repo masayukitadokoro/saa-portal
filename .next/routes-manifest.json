@@ -215,6 +215,14 @@
       "namedRegex": "^/api/student/videos/(?<nxtPcategory>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/student/videos/[category]/learn",
+      "regex": "^/api/student/videos/([^/]+?)/learn(?:/)?$",
+      "routeKeys": {
+        "nxtPcategory": "nxtPcategory"
+      },
+      "namedRegex": "^/api/student/videos/(?<nxtPcategory>[^/]+?)/learn(?:/)?$"
+    },
+    {
       "page": "/api/videos/[videoId]",
       "regex": "^/api/videos/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -261,6 +269,14 @@
         "nxtPcategory": "nxtPcategory"
       },
       "namedRegex": "^/student/videos/(?<nxtPcategory>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/student/videos/[category]/learn",
+      "regex": "^/student/videos/([^/]+?)/learn(?:/)?$",
+      "routeKeys": {
+        "nxtPcategory": "nxtPcategory"
+      },
+      "namedRegex": "^/student/videos/(?<nxtPcategory>[^/]+?)/learn(?:/)?$"
     },
     {
       "page": "/videos/[id]",

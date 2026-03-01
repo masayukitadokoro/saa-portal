@@ -19,3 +19,13 @@ export function formatVideoTitle(title: string, displayOrder?: number | null): s
   // displayOrderがない場合は元の変換（アンダースコアをスペースに）
   return title.replace(/^(\d+(?:-\d+)?)_/, '$1 ');
 }
+
+/**
+ * 動画の表示用番号を取得する
+ * display_orderがあればそれを使い、なければタイトル先頭の数字を抽出
+ */
+export function getDisplayOrder(title: string, displayOrder?: number | null): number | null {
+  if (displayOrder != null) return displayOrder;
+  const match = title.match(/^\s*(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
