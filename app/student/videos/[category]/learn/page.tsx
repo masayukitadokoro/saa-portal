@@ -294,7 +294,7 @@ function PlaylistSidebar({
         {stepVideos.map((vid, i) => {
           const isActive = i === currentVideoIdx;
           const isWatched = completedVideoIds.includes(vid.video_id);
-          const thumb = vid.custom_thumbnail_url || vid.thumbnail_url;
+          const thumb = vid.custom_thumbnail_url || vid.thumbnail_url || (vid.youtube_id ? `https://img.youtube.com/vi/${vid.youtube_id}/mqdefault.jpg` : null);
           return (
             <button
               key={vid.id}
