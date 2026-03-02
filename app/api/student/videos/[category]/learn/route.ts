@@ -45,8 +45,7 @@ export async function GET(
         slide_url,
         chapter,
         step,
-        video_url,
-        custom_thumbnail_url
+        video_url
       `)
       .eq('category_id', categoryId)
       .not('chapter', 'is', null)

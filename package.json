@@ -21,7 +21,8 @@
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "replicate": "^1.4.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "youtube-transcript": "^1.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

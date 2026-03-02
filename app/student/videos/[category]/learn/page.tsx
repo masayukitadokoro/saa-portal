@@ -617,7 +617,7 @@ export default function LearnPage() {
                 )}
 
                 {/* Article link */}
-                {current && (
+                {current && slug === "kagaku" && (
                   <a href={`/articles/${current.video_id}`} target="_blank" rel="noopener noreferrer" className="mt-3 w-full block py-3 px-5 bg-white border border-gray-200 rounded-xl text-[14px] text-indigo-500 font-semibold no-underline hover:bg-indigo-50 transition flex items-center gap-2">
                     <FileText className="w-4 h-4" /> 解説記事を読む
                   </a>
