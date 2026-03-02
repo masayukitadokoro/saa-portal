@@ -46,7 +46,6 @@ export async function GET(
         chapter,
         step,
         video_url,
-        youtube_id,
         custom_thumbnail_url
       `)
       .eq('category_id', categoryId)
