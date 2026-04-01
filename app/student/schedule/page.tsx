@@ -1,258 +1,412 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Video, Filter, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { StudentLayout } from '@/components/student/StudentLayout';
-import { Card } from '@/components/student/ui';
-import { 
-  EVENT_STYLES,
-  getZoomUrl,
-  getEventStyle,
-} from '@/lib/constants/schedule';
-import { 
-  formatDateParts, 
-  formatTime, 
-  getDaysUntil,
-} from '@/lib/utils/date';
-import type { ScheduleEvent, EventType } from '@/lib/notion';
+import {
+  Video,
+  FileText,
+  ExternalLink,
+  Loader2,
+  Calendar,
+  Clock,
+  User,
+  MapPin,
+  Link as LinkIcon,
+  BookOpen,
+  FolderOpen,
+  PlayCircle,
+  MessageSquare,
+} from 'lucide-react';
 
-type FilterType = 'all' | EventType;
+type EventType = 'regular' | 'expert' | 'office_hour' | 'special' | 'other';
+
+interface ScheduleEvent {
+  id: string;
+  date: string;
+  endDate?: string;
+  name: string;
+  eventType: EventType;
+  venue: string | null;
+  preSurveyUrl: string | null;
+  postSurveyUrl: string | null;
+  lectureVideoUrl: string | null;
+  materialUrl: string | null;
+  submissionFolderUrl: string | null;
+  zoomUrl: string | null;
+}
+
+const EVENT_TYPE_CONFIG: Record<
+  EventType,
+  { label: string; color: string; dotClass: string }
+> = {
+  regular: {
+    label: '定例講義',
+    color: 'text-red-600',
+    dotClass: 'bg-red-400',
+  },
+  expert: {
+    label: '専門家講義',
+    color: 'text-green-600',
+    dotClass: 'bg-green-500',
+  },
+  office_hour: {
+    label: 'オフィスアワー',
+    color: 'text-blue-600',
+    dotClass: 'bg-blue-400',
+  },
+  special: {
+    label: '特別講義',
+    color: 'text-amber-600',
+    dotClass: 'bg-amber-400',
+  },
+  other: {
+    label: 'その他',
+    color: 'text-gray-600',
+    dotClass: 'bg-gray-400',
+  },
+};
+
+const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+function formatTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function formatTimeRange(start: string, end?: string): string {
+  const s = formatTime(start);
+  if (!end) return s;
+  return `${s} - ${formatTime(end)}`;
+}
+
+function formatFullDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${DAY_NAMES[d.getDay()]}）`;
+}
+
+function getMonthKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+}
+
+function groupByMonth(
+  events: ScheduleEvent[]
+): { month: string; events: ScheduleEvent[] }[] {
+  const groups: Map<string, ScheduleEvent[]> = new Map();
+  for (const ev of events) {
+    const key = getMonthKey(ev.date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)?.push(ev);
+  }
+  return Array.from(groups.entries()).map(([month, events]) => ({
+    month,
+    events,
+  }));
+}
+
+function extractInstructor(name: string): string | null {
+  const match = name.match(/[：:]\s*(.+)/);
+  return match ? match[1] : null;
+}
 
 export default function SchedulePage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSchedule();
-  }, []);
-
-  const fetchSchedule = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/student/schedule?type=all');
-      if (!response.ok) throw new Error('Failed to fetch schedule');
-      
-      const data = await response.json();
-      setEvents(data.events || []);
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setError('スケジュールの取得に失敗しました');
-    } finally {
-      setLoading(false);
+    if (!authLoading && !user) {
+      router.push('/auth/login');
     }
-  };
+  }, [user, authLoading, router]);
 
-  // 1月のイベントを除外 + フィルタリング
-  const filteredEvents = useMemo(() => {
-    let result = events.filter(e => {
-      const date = new Date(e.date);
-      // 1月のイベントを除外
-      if (date.getMonth() === 0) return false;
-      return true;
-    });
-    
-    if (filter !== 'all') {
-      result = result.filter(e => e.eventType === filter);
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetch('/api/student/schedule')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.events) {
+            setEvents(d.events);
+            if (d.events.length > 0) {
+              const now = new Date();
+              const upcoming = d.events.find(
+                (e: ScheduleEvent) => new Date(e.date) >= now
+              );
+              setSelectedId(
+                upcoming ? upcoming.id : d.events[0].id
+              );
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
     }
-    
-    return result;
-  }, [events, filter]);
+  }, [authLoading, user]);
 
-  // 次のイベント（今日以降で最も近いイベント）のIDを取得
-  const nextEventId = useMemo(() => {
-    const now = new Date();
-    const futureEvents = filteredEvents.filter(e => new Date(e.date) >= now);
-    if (futureEvents.length === 0) return null;
-    return futureEvents[0].id;
-  }, [filteredEvents]);
+  const selected = events.find((e) => e.id === selectedId) || null;
+  const grouped = groupByMonth(events);
 
-  // 月ごとにグループ化
-  const groupedByMonth = filteredEvents.reduce((acc, event) => {
-    if (!event.date) return acc;
-    const date = new Date(event.date);
-    const monthKey = `${date.getFullYear()}年${date.getMonth() + 1}月`;
-    if (!acc[monthKey]) acc[monthKey] = [];
-    acc[monthKey].push(event);
-    return acc;
-  }, {} as Record<string, ScheduleEvent[]>);
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <StudentLayout pageTitle="スケジュール">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-        </div>
-      </StudentLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <StudentLayout pageTitle="スケジュール">
-        <div className="text-center py-12">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={fetchSchedule}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            再試行
-          </button>
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </div>
       </StudentLayout>
     );
   }
 
   return (
-    <StudentLayout pageTitle="スケジュール">
-      <div className="max-w-4xl mx-auto">
-        {/* フィルター */}
-        <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <Filter className="w-5 h-5 text-gray-500" />
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-              filter === 'all'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            全て
-          </button>
-          {(Object.keys(EVENT_STYLES) as EventType[]).map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilter(type)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                filter === type
-                  ? `${EVENT_STYLES[type].bgColor} text-white`
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {EVENT_STYLES[type].emoji} {EVENT_STYLES[type].label}
-            </button>
-          ))}
-        </div>
+    <StudentLayout>
+      <div className="flex min-h-[calc(100vh-64px)]">
+        {/* Sidebar: Date-badge list */}
+        <aside className="w-60 flex-shrink-0 border-r border-gray-200 bg-white overflow-y-auto">
+          <div className="py-3">
+            {grouped.map((group) => (
+              <div key={group.month}>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 pt-3 pb-1">
+                  {group.month}
+                </p>
+                {group.events.map((ev) => {
+                  const d = new Date(ev.date);
+                  const day = d.getDate();
+                  const dow = DAY_NAMES[d.getDay()];
+                  const config = EVENT_TYPE_CONFIG[ev.eventType];
+                  const isActive = ev.id === selectedId;
 
-        {/* タイムライン */}
-        {Object.entries(groupedByMonth).map(([month, monthEvents]) => (
-          <div key={month} className="mb-10">
-            {/* 月ヘッダー - 大きく表示 */}
-            <div className="flex items-center gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{month}</h2>
-              <div className="flex-1 h-px bg-gray-300" />
-            </div>
-
-            {/* イベントリスト */}
-            <div className="relative">
-              {/* タイムラインの線 */}
-              <div className="absolute left-[52px] top-0 bottom-0 w-0.5 bg-gray-200" />
-
-              {monthEvents.map((event) => {
-                const style = getEventStyle(event.eventType);
-                const { day, weekday } = formatDateParts(event.date);
-                const daysUntil = getDaysUntil(event.date);
-                const isPast = !daysUntil;
-                const isNextEvent = event.id === nextEventId;
-
-                return (
-                  <div 
-                    key={event.id} 
-                    className={`relative flex gap-4 mb-4 ${isPast ? 'opacity-50' : ''}`}
-                  >
-                    {/* 日付 */}
-                    <div className={`w-12 text-right flex-shrink-0 ${isNextEvent ? 'text-indigo-600' : ''}`}>
-                      <div className={`text-lg font-bold ${isNextEvent ? 'text-indigo-600' : 'text-gray-900'}`}>
-                        {day}日
-                      </div>
-                      <div className={`text-sm ${isNextEvent ? 'text-indigo-500' : 'text-gray-500'}`}>
-                        ({weekday})
-                      </div>
-                    </div>
-
-                    {/* ドット - 次のイベントは大きく */}
-                    <div className={`
-                      ${isNextEvent ? 'w-4 h-4 ring-4 ring-indigo-100' : 'w-3 h-3 ring-4 ring-white'} 
-                      rounded-full ${isNextEvent ? 'bg-indigo-600' : style.bgColor} 
-                      mt-2 flex-shrink-0 relative z-10
-                    `} />
-
-                    {/* イベントカード */}
-                    <Link href={`/student/schedule/${event.id}`} className="block"><Card className={`cursor-pointer hover:shadow-md 
-                      flex-1 p-4 transition-all
-                      ${isNextEvent ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : ''}
-                    `}>
-                      {/* 次のイベントラベル */}
-                      {isNextEvent && (
-                        <div className="flex items-center gap-1 mb-2">
-                          <span className="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded">
-                            📍 次のイベント
-                          </span>
+                  return (
+                    <button
+                      key={ev.id}
+                      onClick={() => setSelectedId(ev.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition ${
+                        isActive
+                          ? 'bg-indigo-50'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {/* Date badge */}
+                      <div className="w-9 flex-shrink-0 text-center">
+                        <div
+                          className={`text-[17px] font-semibold leading-none ${
+                            isActive
+                              ? 'text-indigo-600'
+                              : 'text-gray-800'
+                          }`}
+                        >
+                          {day}
                         </div>
-                      )}
-                      
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <span className={`text-sm font-medium ${style.color}`}>
-                            {style.emoji} {style.label}
-                          </span>
-                          <h3 className={`font-bold mt-1 ${isNextEvent ? 'text-indigo-900' : 'text-gray-900'}`}>
-                            {event.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {formatTime(event.date)}
-                            {event.endDate && ` - ${formatTime(event.endDate)}`}
-                            {event.venue && ` | ${event.venue}`}
-                          </p>
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                          {dow}
                         </div>
-                        {daysUntil && (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            daysUntil === '今日' ? 'bg-red-100 text-red-700' :
-                            daysUntil === '明日' ? 'bg-orange-100 text-orange-700' :
-                            isNextEvent ? 'bg-indigo-100 text-indigo-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>
-                            {daysUntil}
-                          </span>
-                        )}
                       </div>
 
-                      {/* アクションボタン - Zoomのみ表示 */}
-                      {event.venue === 'Zoom' && !isPast && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <a
-                            href={getZoomUrl(event.eventType)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`
-                              inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition
-                              ${isNextEvent 
-                                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700'}
-                            `}
-                          >
-                            <Video className="w-4 h-4" />
-                            Zoom参加
-                          </a>
+                      {/* Event info */}
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className={`text-[12px] font-medium truncate ${
+                            isActive
+                              ? 'text-indigo-700'
+                              : 'text-gray-800'
+                          }`}
+                        >
+                          {ev.name}
                         </div>
-                      )}
-                    </Card></Link>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span
+                            className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${config.dotClass}`}
+                          />
+                          <span className="text-[10px] text-gray-400 truncate">
+                            {formatTime(ev.date)}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+
+            {events.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">
+                スケジュールがありません
+              </p>
+            )}
+          </div>
+        </aside>
+
+        {/* Main: Event detail */}
+        <main className="flex-1 overflow-y-auto">
+          {selected ? (
+            <div className="max-w-3xl mx-auto px-8 py-8">
+              {/* Category badge */}
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className={`w-2 h-2 rounded-full ${EVENT_TYPE_CONFIG[selected.eventType].dotClass}`}
+                />
+                <span
+                  className={`text-sm font-medium ${EVENT_TYPE_CONFIG[selected.eventType].color}`}
+                >
+                  {EVENT_TYPE_CONFIG[selected.eventType].label}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                {selected.name}
+              </h1>
+
+              {/* Meta info */}
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-6">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span>{formatFullDate(selected.date)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span>
+                    {formatTimeRange(
+                      selected.date,
+                      selected.endDate
+                    )}
+                  </span>
+                </div>
+                {selected.venue && (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span>{selected.venue}</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                )}
+              </div>
 
-        {filteredEvents.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            {filter === 'all' ? 'スケジュールがありません' : `${EVENT_STYLES[filter].label}のスケジュールがありません`}
-          </div>
-        )}
+              {/* Zoom button */}
+              {selected.zoomUrl && (
+                <a
+                  href={selected.zoomUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium mb-8"
+                >
+                  <Video className="w-4 h-4" />
+                  講義にZoom参加する
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              {/* Resources section */}
+              <div className="space-y-3">
+                {/* Pre-lecture materials */}
+                {selected.materialUrl && (
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-3">
+                      <FileText className="w-4 h-4 text-gray-400" />
+                      講義資料
+                    </h3>
+                    <a
+                      href={selected.materialUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800"
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                      資料を開く
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
+                {/* Recording */}
+                {selected.lectureVideoUrl && (
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-3">
+                      <PlayCircle className="w-4 h-4 text-gray-400" />
+                      アーカイブ動画
+                    </h3>
+                    <a
+                      href={selected.lectureVideoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800"
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      動画を視聴する
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
+                {/* Surveys */}
+                {(selected.preSurveyUrl ||
+                  selected.postSurveyUrl ||
+                  selected.submissionFolderUrl) && (
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-3">
+                      <MessageSquare className="w-4 h-4 text-gray-400" />
+                      アンケート・提出
+                    </h3>
+                    <div className="space-y-2">
+                      {selected.preSurveyUrl && (
+                        <a
+                          href={selected.preSurveyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800"
+                        >
+                          <LinkIcon className="w-3.5 h-3.5" />
+                          事前アンケート
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {selected.postSurveyUrl && (
+                        <a
+                          href={selected.postSurveyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800"
+                        >
+                          <LinkIcon className="w-3.5 h-3.5" />
+                          講義後アンケート
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {selected.submissionFolderUrl && (
+                        <a
+                          href={selected.submissionFolderUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          提出フォルダ
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* No resources message */}
+                {!selected.materialUrl &&
+                  !selected.lectureVideoUrl &&
+                  !selected.preSurveyUrl &&
+                  !selected.postSurveyUrl &&
+                  !selected.submissionFolderUrl && (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                      この講義の資料はまだ登録されていません
+                    </div>
+                  )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center min-h-[60vh] text-gray-400">
+              <p>左のリストからイベントを選択してください</p>
+            </div>
+          )}
+        </main>
       </div>
     </StudentLayout>
   );

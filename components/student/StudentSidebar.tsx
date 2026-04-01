@@ -17,6 +17,8 @@ import {
   Menu,
   X,
   FolderOpen,
+  Clock,
+  Bookmark,
 } from 'lucide-react';
 import type { CategoryProgress } from '@/types/student-dashboard';
 
@@ -101,6 +103,18 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
       href: '/student/guide',
     },
     {
+      id: 'history',
+      label: '学習履歴',
+      icon: <Clock className="w-5 h-5" />,
+      href: '/student/history',
+    },
+    {
+      id: 'bookmarks',
+      label: '保存した動画',
+      icon: <Bookmark className="w-5 h-5" />,
+      href: '/student/bookmarks',
+    },
+    {
       id: 'mypage',
       label: 'マイページ',
       icon: <User className="w-5 h-5" />,
@@ -110,6 +124,7 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
 
   const isActive = (href?: string) => {
     if (!href) return false;
+    if (href === '/student') return pathname === '/student' || pathname === '/student/dashboard';
     return pathname === href || pathname.startsWith(href + '/');
   };
 
@@ -119,21 +134,8 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
     <>
       <div className="pt-16" />
 
-
-
-
-
-
-
-
-
-
-
-
-      {/* Divider */}
       <div className="mx-4 border-t border-gray-100 mb-2" />
 
-      {/* Navigation */}
       <nav className="flex-1 px-3">
         {menuItems.map((item) => (
           <div key={item.id} className="mb-0.5">
@@ -197,7 +199,6 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
         ))}
       </nav>
 
-      {/* Bottom */}
       <div className="p-3 border-t border-gray-100">
         <Link
           href="/student/settings"
@@ -221,12 +222,10 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200 fixed h-full z-20">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Header - purple gradient */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-between px-4 z-50 shadow-md">
         <button
           onClick={() => setMobileMenuOpen(true)}
@@ -243,7 +242,6 @@ export function StudentSidebar({ categoryProgress = [], userName }: StudentSideb
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
