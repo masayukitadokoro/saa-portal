@@ -330,11 +330,7 @@ export default function SubmissionsPage() {
                   <Clock className="w-4 h-4" />
                   <span>
                     期限:{' '}
-                    {new Date(selected.deadline).toLocaleDateString('ja-JP', {
-                      month: 'long',
-                      day: 'numeric',
-                      weekday: 'short',
-                    })}
+                    {isNaN(new Date(selected.deadline).getTime()) ? selected.deadline : new Date(selected.deadline).toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })}
                   </span>
                 </div>
               )}

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     .from('videos')
     .select(`
       *,
-      category:categories(id, name, slug)
+      category:categories!videos_category_id_fkey(id, name, slug)
     `)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true });

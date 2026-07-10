@@ -124,6 +124,8 @@ export async function GET() {
         categoryName: info.name,
         totalVideos,
         completedVideos,
+        total: totalVideos,
+        completed: completedVideos,
         progressPercent: totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0,
         color: info.color,
       };
